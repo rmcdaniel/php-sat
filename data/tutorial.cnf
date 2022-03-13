@@ -1,0 +1,52 @@
+c A | B | C | D | E | (A ∨ B ∨ C ∨ D ∨ E) ∧ (¬A ∨ ¬B ∨ ¬C ∨ ¬D ∨ ¬E) ∧ (A ∨ ¬B ∨ C ∨ ¬D ∨ E) ∧ E ∧ (¬A ∨ B)
+c T | T | T | T | T | F
+c T | T | T | T | F | F
+c T | T | T | F | T | T
+c T | T | T | F | F | F
+c T | T | F | T | T | T
+c T | T | F | T | F | F
+c T | T | F | F | T | T
+c T | T | F | F | F | F
+c T | F | T | T | T | F
+c T | F | T | T | F | F
+c T | F | T | F | T | F
+c T | F | T | F | F | F
+c T | F | F | T | T | F
+c T | F | F | T | F | F
+c T | F | F | F | T | F
+c T | F | F | F | F | F
+c F | T | T | T | T | T
+c F | T | T | T | F | F
+c F | T | T | F | T | T
+c F | T | T | F | F | F
+c F | T | F | T | T | T
+c F | T | F | T | F | F
+c F | T | F | F | T | T
+c F | T | F | F | F | F
+c F | F | T | T | T | T
+c F | F | T | T | F | F
+c F | F | T | F | T | T
+c F | F | T | F | F | F
+c F | F | F | T | T | T
+c F | F | F | T | F | F
+c F | F | F | F | T | T
+c F | F | F | F | F | F
+c 
+c 1, 2, 3, -4, 5
+c 1, 2, -3, 4, 5
+c 1, 2, -3, -4, 5
+c -1, 2, 3, 4, 5
+c -1, 2, 3, -4, 5
+c -1, 2, -3, 4, 5
+c -1, 2, -3, -4, 5
+c -1, -2, 3, 4, 5
+c -1, -2, 3, -4, 5
+c -1, -2, -3, 4, 5
+c -1, -2, -3, -4, 5
+
+p cnf 5 5
+1 2 3 4 5 0
+-1 -2 -3 -4 -5 0
+1 -2 3 -4 5 0
+5 0
+-1 2 0
