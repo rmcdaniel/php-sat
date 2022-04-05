@@ -1,5 +1,7 @@
 {
     "name": "rmcdaniel/php-sat",
+    "version": "1.0.0",
+    "description": "PHP Boolean Satisfiability Solver",
     "type": "project",
     "autoload": {
         "psr-4": {
