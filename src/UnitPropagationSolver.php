@@ -2,7 +2,7 @@
 
 namespace SAT;
 
-class Solver
+class UnitPropagationSolver implements SolverInterface
 {
     public $CNF;
     public $variables;
@@ -11,7 +11,7 @@ class Solver
     public $decisionLevel;
     public $satisfiable;
 
-    public function __construct($CNF)
+    public function __construct(CNF $CNF)
     {
         $this->CNF = $CNF;
         $this->variables = collect();
@@ -229,9 +229,10 @@ class Solver
 
     public function solve()
     {
-        $this->CNF->literals()
-            ->each(function ($literal) {
-                $this->addVariable($literal);
+        echo PHP_EOL;
+        $this->CNF->variables()
+            ->each(function ($variable) {
+                $this->addVariable($variable);
             });
 
         $this->CNF->clauses()

@@ -2,38 +2,51 @@
 
 namespace SAT;
 
-class BruteSolver
+class BruteSolver implements SolverInterface
 {
-    public function __construct($CNF)
+    public function __construct(CNF $CNF)
     {
         $this->CNF = $CNF;
         $this->variables = collect();
         $this->clauses = collect();
     }
 
+    public function next($variables)
+    {
+        for ($index = count($variables) - 1; $index > 0; $index--) {
+            if ($variables[$index] > 0) {
+                $variables[$index] = -$variables[$index];
+                return $variables;
+            } else {
+                $variables[$index] = -$variables[$index];
+            }
+        }
+        if ($variables[$index] > 0) {
+            $variables[$index] = -$variables[$index];
+            return $variables;
+        } else {
+            return null;
+        }
+    }
+
     public function solve()
     {
-        return $this->CNF->variables()
-            ->skip(1)
-            ->reduce(function ($variables, $variable) {
-                return $variables->crossJoin([$variable, -$variable]);
-            }, collect([$this->CNF->variables()->first(), -$this->CNF->variables()->first()]))
-            ->flatten()
-            ->chunk($this->CNF->variables()->count())
-            ->map(function ($variables) {
-                return $variables->values();
-            })
-            ->shuffle()
-            ->first(function ($possibility) {
-                return $this->CNF->clauses()
-                    ->every(function ($clause) use ($possibility) {
-                        return $clause->contains(function ($literal) use ($possibility) {
-                            return $literal === $possibility->first(function ($possibility) use ($literal) {
-                                return abs($literal) === abs($possibility);
-                            });
+        $variables = $this->CNF->variables()->toArray();
+
+        do {
+            $solved = $this->CNF->clauses()
+                ->every(function ($clause) use ($variables) {
+                    return $clause
+                        ->contains(function ($literal) use ($variables) {
+                            return $literal === $variables[abs($literal) - 1];
                         });
-                    });
-            })
-            ?->toArray();
+                });
+            if ($solved) {
+                $solution = $variables;
+                break;
+            }
+        } while ($variables = $this->next($variables));
+
+        return $solution;
     }
 }

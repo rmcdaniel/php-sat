@@ -3,13 +3,13 @@
 use PHPUnit\Framework\TestCase;
 use SAT\CNF;
 use SAT\Parser;
-use SAT\BruteSolver;
+use SAT\UnitPropagationSolver;
 
-class BruteSolverTest extends TestCase
+class UnitPropagationSolverTest extends TestCase
 {
     public function testSolverSimple()
     {
-        $solver = new BruteSolver(new CNF([
+        $solver = new UnitPropagationSolver(new CNF([
             [1, -3],
             [2, 3, -1],
         ]));
@@ -27,7 +27,7 @@ class BruteSolverTest extends TestCase
 
     public function testSolverTutorial()
     {
-        $solver = new BruteSolver(new CNF([
+        $solver = new UnitPropagationSolver(new CNF([
             [1, 2, 3, 4, 5],
             [-1, -2, -3, -4, -5],
             [1, -2, 3, -4, 5],

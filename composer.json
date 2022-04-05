@@ -14,6 +14,6 @@
         "mockery/mockery": "^1.5"
     },
     "scripts": {
-        "test": "./vendor/bin/phpunit tests --filter testSolverTutorial"
+        "test": "./vendor/bin/phpunit tests"
     }
 }

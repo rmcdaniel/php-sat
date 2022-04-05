@@ -58,7 +58,8 @@ class CNF
                 });
             })
             ->unique()
-            ->sort();
+            ->sort()
+            ->values();
     }
 
     public function clauses()
