@@ -1,8 +1,8 @@
 {
     "name": "rmcdaniel/php-sat",
-    "version": "1.0.0",
     "description": "PHP Boolean Satisfiability Solver",
     "type": "project",
+    "license": "MIT",
     "autoload": {
         "psr-4": {
             "SAT\\": "src/"
