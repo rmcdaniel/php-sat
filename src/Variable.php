@@ -6,8 +6,10 @@ class Variable
 {
     public $unit;
     public $marked;
+    public $tagged;
     public $negated;
     public $literal;
+    public $reason;
     public $watches;
     public $decisionLevel;
 
@@ -15,8 +17,10 @@ class Variable
     {
         $this->unit = false;
         $this->marked = false;
+        $this->tagged = false;
         $this->negated = false;
         $this->literal = $literal;
+        $this->reason = null;
         $this->watches = collect();
         $this->decisionLevel = 0;
     }
@@ -50,10 +54,11 @@ class Variable
         return $this->negated ? -$this->literal : $this->literal;
     }
 
-    public function mark($literal, $decisionLevel)
+    public function mark($literal, $reason, $decisionLevel)
     {
-        echo 'marked ' . $literal . ' ' . $decisionLevel . PHP_EOL;
+        // echo 'marked ' . $literal . ' ' . $decisionLevel . PHP_EOL;
         $this->negated = $literal < 0;
+        $this->reason = $reason;
         $this->decisionLevel = $decisionLevel;
         $this->marked = true;
         return $this;
@@ -66,7 +71,7 @@ class Variable
     
     public function makeUnit($literal)
     {
-        echo 'unit ' . $literal . PHP_EOL;
+        // echo 'unit ' . $literal . PHP_EOL;
         $this->negated = $literal < 0;
         $this->unit = true;
         return $this;
@@ -74,7 +79,7 @@ class Variable
 
     public function unwatch($clause)
     {
-        echo 'unwatching ' . $this->literal . ' ' . implode(',', $clause->literals()->toArray()) . PHP_EOL;
+        // echo 'unwatching ' . $this->literal . ' ' . implode(',', $clause->literals()->toArray()) . PHP_EOL;
 
         $index = -1;
 
@@ -93,7 +98,7 @@ class Variable
 
     public function watch($clause)
     {
-        echo 'watching ' . $this->literal . ' ' . implode(',', $clause->literals()->toArray()) . PHP_EOL;
+        // echo 'watching ' . $this->literal . ' ' . implode(',', $clause->literals()->toArray()) . PHP_EOL;
         $this->watches->push($clause);
     }
 

@@ -33,6 +33,8 @@ class BruteSolver implements SolverInterface
     {
         $variables = $this->CNF->variables()->toArray();
 
+        $solution = null;
+
         do {
             $solved = $this->CNF->clauses()
                 ->every(function ($clause) use ($variables) {

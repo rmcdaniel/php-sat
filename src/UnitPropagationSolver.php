@@ -25,15 +25,18 @@ class UnitPropagationSolver implements SolverInterface
         $this->variables->push(new Variable($literal));
     }
 
-    public function markVariable($literal)
+    public function markVariable($literal, $reason)
     {
         $variable = $this->getVariable($literal);
-        $variable->mark($literal, $this->decisionLevel);
+        $variable->mark($literal, $reason, $this->decisionLevel);
         $this->trail->push($literal);
     }
 
     public function getVariable($literal)
     {
+        if (is_null($literal)) {
+            throw new \Exception('null literal detected');
+        }
         $index = -1;
         $literal = abs($literal);
         $variable = null;
@@ -51,25 +54,6 @@ class UnitPropagationSolver implements SolverInterface
         }
 
         return $variable;
-    }
-
-    public function updateVariable($variable)
-    {
-        $index = -1;
-
-        $this->variables
-            ->each(function ($v, $i) use (&$index, $variable) {
-                if ($v->equals($variable)) {
-                    $index = $i;
-                    return false;
-                }
-            });
-
-        if ($index !== -1) {
-            $this->variables->put($index, $variable);
-        }
-
-        return $this;
     }
 
     public function getRandomVariable()
@@ -129,23 +113,19 @@ class UnitPropagationSolver implements SolverInterface
                     }
                 } else {
                     $variable->makeUnit($literal);
-                    $this->updateVariable($variable);
                 }
                 break;
-    
+
             default:
-                $literal = $this->getRandomLiteral($clause);
+                $literal = $clause->literals()->get(0);
                 $clause->watch($literal);
                 $variable = $this->getVariable($literal);
                 $variable->watch($clause);
-                $this->updateVariable($variable);
 
-                $literal = $this->getRandomLiteral($clause);
+                $literal = $clause->literals()->get(1);
                 $clause->watch($literal);
                 $variable = $this->getVariable($literal);
                 $variable->watch($clause);
-                $this->updateVariable($variable);
-
                 break;
         }
 
@@ -172,18 +152,137 @@ class UnitPropagationSolver implements SolverInterface
         return $clause;
     }
 
-    function propagate($literal)
+    function backtrack($reason)
+    {
+        // echo 'backtracking' . PHP_EOL;
+
+        if ($this->decisionLevel === 0) return null;
+
+        $conflicts = collect();
+
+        // echo 'tagging' . PHP_EOL;
+
+        $reason->literals()
+            ->each(function ($literal) use ($conflicts) {
+                $variable = $this->getVariable($literal);
+                if ($variable->decisionLevel === 0) return;
+                $variable->tagged = true;
+                if ($variable->decisionLevel < $this->decisionLevel) {
+                    $conflicts->push($literal);
+                }
+            });
+
+        $count = $reason->literals()->count() -  $conflicts->count();
+
+        // echo 'UIP' . PHP_EOL;
+
+        $tlevel = $this->trail->count() - 1;
+        $literal;
+
+        do {
+            if ($tlevel < 0) return null;
+
+            $literal = $this->trail->get($tlevel--);
+
+            // echo 'literal ' . $literal . PHP_EOL;
+
+            $variable = $this->getVariable($literal);
+            $variable->marked = false;
+
+            if (!$variable->tagged) continue;
+            $variable->tagged = false;
+
+            $count--;
+
+            if ($count <= 0) break;
+
+            if (is_null($variable->reason)) continue;
+
+            for ($i = 1; $i < $variable->reason->literals()->count(); $i++) { 
+                $literal = $variable->reason->literals()->get($i);
+                $other = $this->getVariable($literal);
+                if ($other->marked || $other->decisionLevel === 0) continue;
+                if ($other->decisionLevel < $this->decisionLevel) {
+                    $conflicts->push($literal);
+                } else {
+                    $count++;
+                }
+                $other->tagged = true;
+            }
+
+        } while (true);
+
+        // echo 'no good' . PHP_EOL;
+
+        $nogood = collect([-$literal]);
+        $blevel = 0;
+        for ($i = 0; $i < $conflicts->count(); $i++) {
+            $literal = $conflicts->get($i);
+            $variable = $this->getVariable($literal);
+            if ($variable->reason) {
+                if ($variable->reason->literals()->count() > 0) {
+                    for ($j = 1; $j < $variable->reason->literals()->count() && $this->getVariable($variable->reason->literals()->get($j))->marked(); $j++);
+                    if ($j >= $variable->reason->literals()->count()) continue;
+                }
+            }
+            $nogood->push($literal);
+            if ($blevel < $variable->decisionLevel)
+            {
+                $blevel = $variable->decisionLevel;
+                $nogood->put($nogood->count() - 1, $nogood->get(1));
+                $nogood->put(1, $literal);
+            }
+        }
+
+        // echo 'unwind' . PHP_EOL;
+
+        while ($tlevel >= 0)
+        {
+            $literal = $this->trail->get($tlevel);
+            $variable = $this->getVariable($literal);
+            if ($variable->decisionLevel <= $blevel) break;
+            $variable->marked = false;
+            $tlevel--;
+        }
+
+        $this->trail = $this->trail->slice(0, $tlevel + 1);
+
+        // echo 'clear' . PHP_EOL;
+
+        for ($i = 0; $i < $conflicts->count(); $i++)
+        {
+            $variable = $this->getVariable($conflicts->get($i));
+            $variable->tagged = false;
+        }
+
+        // echo 'learn' . PHP_EOL;
+
+        $this->addClause($nogood);
+        $this->decisionLevel = $blevel;
+
+        // echo ($this->satisfiable ? 'true' : 'false') . PHP_EOL;
+
+        if (!$this->satisfiable) return null;
+
+        // echo 'works' . PHP_EOL;
+
+        return $nogood;
+    }
+
+    function propagate($literal, $reason = null)
     {
         do {
             $restart = false;
             $current = $this->trail->count();
             $next = $current + 1;
 
-            $this->markVariable($literal);
+            $this->markVariable($literal, $reason);
 
             while ($current < $next) {
                 $literal = $this->trail->get($current);
                 $current++;
+
+                $literal = -$literal;
 
                 $variable = $this->getVariable($literal);
 
@@ -201,7 +300,6 @@ class UnitPropagationSolver implements SolverInterface
                         $clause->watch($literal);
                         $other = $this->getVariable($literal);
                         $other->watch($clause);
-                        $this->updateVariable($other);    
                     } else {
                         if ($clause->watched()->count() === 1) {
                             $other = $this->getVariable($clause->watched()->first());
@@ -209,13 +307,17 @@ class UnitPropagationSolver implements SolverInterface
                                 throw new \Exception('Conflict 1');
                             } else {
                                 if (!$other->marked) {
-                                    $this->markVariable($clause->watched()->first());
+                                    $this->markVariable($clause->watched()->first(), $clause);
                                     $next++;
                                     $continue;
                                 }
                             }
                         } else {
-                            throw new \Exception('Conflict - [' . $clause->watched()->implode(', ') . ']');
+                            $reason = $this->backtrack($clause);
+                            if (is_null($reason)) return false;
+                            $literal = $reason->get(0);
+                            $restart = true;
+                            break;
                         }
                     }
                 }
@@ -229,7 +331,7 @@ class UnitPropagationSolver implements SolverInterface
 
     public function solve()
     {
-        echo PHP_EOL;
+        // echo PHP_EOL;
         $this->CNF->variables()
             ->each(function ($variable) {
                 $this->addVariable($variable);
@@ -247,7 +349,7 @@ class UnitPropagationSolver implements SolverInterface
                 }
             });
 
-        for ($this->decisionLevel = 0; true; $this->decisionLevel++) {
+        for ($this->decisionLevel = 1; true; $this->decisionLevel++) {
             $literal = $this->getRandomVariable();
             if ($literal) {
                 $this->propagate($literal);
